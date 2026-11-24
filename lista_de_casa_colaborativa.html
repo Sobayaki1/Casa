@@ -1,0 +1,934 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lista de Casa • Enxoval & Organização</title>
+    <!-- Tailwind CSS via CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome para ícones -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- Fonte Inter do Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#f0fdf4',
+                            100: '#dcfce7',
+                            500: '#22c55e',
+                            600: '#16a34a',
+                            700: '#15803d',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Suavização de rolagem e ajustes finos */
+        html { scroll-behavior: smooth; }
+        .custom-scrollbar::-webkit-scrollbar { height: 4px; width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 9999px; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased min-h-screen flex flex-col">
+
+    <!-- Cabeçalho Fixo com Progresso Geral -->
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
+        <div class="max-w-5xl mx-auto px-4 py-4">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-sm">
+                        <i class="fa-solid fa-house-chimney text-lg"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-xl font-bold text-slate-900 leading-tight">Nossa Lista de Casa</h1>
+                        <p class="text-xs text-slate-500 flex items-center gap-1.5">
+                            <span id="connection-status" class="inline-block w-2 h-2 rounded-full bg-amber-400"></span>
+                            <span id="connection-text">Conectando...</span>
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Botões de Ação no Topo -->
+                <div class="flex items-center gap-2 self-end sm:self-auto">
+                    <button onclick="openNewItemModal()" class="bg-emerald-600 hover:bg-emerald-700 active:scale-95 transition text-white text-sm font-medium px-4 py-2.5 rounded-xl shadow-sm flex items-center gap-2">
+                        <i class="fa-solid fa-plus"></i>
+                        <span>Novo Item</span>
+                    </button>
+                    <button onclick="openGitHubHelpModal()" title="Como subir no GitHub" class="bg-slate-100 hover:bg-slate-200 text-slate-700 p-2.5 rounded-xl transition">
+                        <i class="fa-brands fa-github text-lg"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Barra de Progresso Geral -->
+            <div class="mt-4">
+                <div class="flex justify-between items-end mb-1.5">
+                    <span class="text-xs font-semibold uppercase tracking-wider text-slate-500">Progresso Geral</span>
+                    <div class="text-sm font-bold text-slate-700">
+                        <span id="total-checked" class="text-emerald-600">0</span> de <span id="total-items">0</span> itens
+                        (<span id="total-percent">0%</span>)
+                    </div>
+                </div>
+                <div class="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
+                    <div id="global-progress-bar" class="bg-emerald-500 h-2.5 rounded-full transition-all duration-500" style="width: 0%"></div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Barra de Busca e Filtros -->
+    <section class="max-w-5xl w-full mx-auto px-4 pt-5 pb-2">
+        <div class="bg-white p-3 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row gap-3">
+            <!-- Campo de Busca -->
+            <div class="relative flex-1">
+                <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+                <input type="text" id="search-input" placeholder="Buscar item (ex: Sofá, Gaze, Armário)..." 
+                    class="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition">
+            </div>
+
+            <!-- Botões de Filtro -->
+            <div class="flex items-center gap-1.5 overflow-x-auto custom-scrollbar pb-1 md:pb-0">
+                <button data-filter="all" class="filter-btn active px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition bg-slate-900 text-white">
+                    Todos
+                </button>
+                <button data-filter="pending" class="filter-btn px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition bg-slate-100 text-slate-600 hover:bg-slate-200">
+                    <i class="fa-regular fa-circle mr-1"></i> Faltam
+                </button>
+                <button data-filter="checked" class="filter-btn px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition bg-slate-100 text-slate-600 hover:bg-slate-200">
+                    <i class="fa-solid fa-circle-check text-emerald-500 mr-1"></i> Já temos
+                </button>
+                <button data-filter="with-link" class="filter-btn px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition bg-slate-100 text-slate-600 hover:bg-slate-200">
+                    <i class="fa-solid fa-link text-blue-500 mr-1"></i> Com link
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Conteúdo Principal: Lista de Categorias -->
+    <main id="categories-container" class="max-w-5xl w-full mx-auto px-4 py-4 flex-1 space-y-6">
+        <!-- Estado de carregamento inicial -->
+        <div id="loading-state" class="text-center py-16">
+            <div class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-emerald-500 border-t-transparent mb-3"></div>
+            <p class="text-slate-500 text-sm">Carregando itens da lista...</p>
+        </div>
+    </main>
+
+    <!-- Rodapé -->
+    <footer class="max-w-5xl w-full mx-auto px-4 py-6 text-center text-xs text-slate-400">
+        <p>Lista de Casa Colaborativa • Atualizações sincronizadas automaticamente para todos.</p>
+    </footer>
+
+    <!-- MODAL 1: Adicionar / Editar Link de Compra -->
+    <div id="link-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl border border-slate-100 transform transition-all">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-bold text-slate-900 flex items-center gap-2">
+                    <i class="fa-solid fa-bag-shopping text-blue-600"></i>
+                    <span>Link de Compra</span>
+                </h3>
+                <button onclick="closeLinkModal()" class="text-slate-400 hover:text-slate-600 p-1">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <p id="link-modal-item-name" class="text-sm font-medium text-emerald-700 bg-emerald-50 px-3 py-2 rounded-xl mb-4"></p>
+
+            <form id="link-form" class="space-y-4">
+                <input type="hidden" id="link-item-id">
+                
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                        Seu Nome (Quem está indicando) *
+                    </label>
+                    <input type="text" id="suggester-name" required placeholder="Ex: Ana, João, Mãe..." 
+                        class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                        Link do Produto (URL) *
+                    </label>
+                    <input type="url" id="product-url" required placeholder="https://www.loja.com.br/produto..." 
+                        class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white">
+                </div>
+
+                <div class="flex items-center justify-between pt-2 gap-2">
+                    <button type="button" id="remove-link-btn" onclick="removeLinkFromItem()" class="hidden text-xs font-semibold text-red-600 hover:bg-red-50 px-3 py-2.5 rounded-xl transition">
+                        <i class="fa-solid fa-trash-can mr-1"></i> Remover Link
+                    </button>
+                    <div class="flex items-center gap-2 ml-auto">
+                        <button type="button" onclick="closeLinkModal()" class="px-4 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-xl transition">
+                            Cancelar
+                        </button>
+                        <button type="submit" class="px-5 py-2.5 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-sm transition">
+                            Salvar Link
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL 2: Adicionar Novo Item -->
+    <div id="new-item-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl border border-slate-100">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-bold text-slate-900 flex items-center gap-2">
+                    <i class="fa-solid fa-plus-circle text-emerald-600"></i>
+                    <span>Adicionar Novo Item</span>
+                </h3>
+                <button onclick="closeNewItemModal()" class="text-slate-400 hover:text-slate-600 p-1">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <form id="new-item-form" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                        Categoria / Cômodo *
+                    </label>
+                    <select id="new-item-category" onchange="toggleCustomCategoryInput()" required class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white">
+                        <option value="Móveis Quarto">Móveis Quarto</option>
+                        <option value="Móveis Banheiro">Móveis Banheiro</option>
+                        <option value="Móveis Cozinha">Móveis Cozinha</option>
+                        <option value="Móveis Lavanderia">Móveis Lavanderia</option>
+                        <option value="Móveis Sala">Móveis Sala</option>
+                        <option value="Quarto">Quarto</option>
+                        <option value="Banheiro">Banheiro</option>
+                        <option value="Primeiros Socorros">Primeiros Socorros</option>
+                        <option value="Cozinha & Outros">Cozinha & Outros</option>
+                        <option value="__NEW__">+ Criar novo cômodo...</option>
+                    </select>
+                </div>
+
+                <div id="custom-category-wrapper" class="hidden">
+                    <label class="block text-xs font-semibold text-emerald-700 uppercase tracking-wider mb-1.5">
+                        Nome do Novo Cômodo *
+                    </label>
+                    <input type="text" id="custom-category-name" placeholder="Ex: Varanda, Escritório, Área Gourmet..." 
+                        class="w-full px-3.5 py-2.5 bg-emerald-50/50 border border-emerald-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                        Nome do Item *
+                    </label>
+                    <input type="text" id="new-item-name" required placeholder="Ex: Jogo de toalhas, Air Fryer..." 
+                        class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white">
+                </div>
+
+                <div class="flex items-center gap-2 pt-1">
+                    <input type="checkbox" id="new-item-checked" class="w-4 h-4 text-emerald-600 rounded border-slate-300 focus:ring-emerald-500">
+                    <label for="new-item-checked" class="text-sm text-slate-700">Já temos este item</label>
+                </div>
+
+                <div class="flex justify-end gap-2 pt-3 border-t border-slate-100">
+                    <button type="button" onclick="closeNewItemModal()" class="px-4 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-xl transition">
+                        Cancelar
+                    </button>
+                    <button type="submit" class="px-5 py-2.5 text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-sm transition">
+                        Adicionar à Lista
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL 3: Instruções para GitHub Pages -->
+    <div id="github-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-xl border border-slate-100 max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-bold text-slate-900 flex items-center gap-2">
+                    <i class="fa-brands fa-github text-slate-800 text-xl"></i>
+                    <span>Como publicar no GitHub Pages</span>
+                </h3>
+                <button onclick="closeGitHubHelpModal()" class="text-slate-400 hover:text-slate-600 p-1">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+            
+            <div class="space-y-3 text-sm text-slate-600 leading-relaxed">
+                <p>Este site foi construído em um <strong>único arquivo</strong> (<code class="bg-slate-100 px-1.5 py-0.5 rounded text-slate-800">index.html</code>) pronto para hospedagem gratuita:</p>
+                <ol class="list-decimal pl-5 space-y-2">
+                    <li>Crie uma conta gratuita no <strong>GitHub.com</strong> e clique em <strong>New Repository</strong> (ex: <code class="bg-slate-100 px-1 rounded">lista-de-casa</code>).</li>
+                    <li>Envie este arquivo salvo exatamente com o nome <strong>index.html</strong> para dentro do repositório.</li>
+                    <li>No repositório, vá em <strong>Settings</strong> (Configurações) &gt; <strong>Pages</strong> (menu lateral).</li>
+                    <li>Em <em>Branch</em>, selecione <strong>main</strong> e clique em <strong>Save</strong>.</li>
+                    <li>Em 1 minuto seu link estará no ar para compartilhar no WhatsApp com a família!</li>
+                </ol>
+                <div class="bg-blue-50 border border-blue-200 rounded-xl p-3 text-xs text-blue-900 mt-3 space-y-1.5">
+                    <p class="font-bold flex items-center gap-1.5">
+                        <i class="fa-solid fa-shield-halved text-blue-600"></i>
+                        <span>Passo importante no Firebase (Domínio Autorizado):</span>
+                    </p>
+                    <p>Como este arquivo já está conectado ao seu projeto <strong>casa-d8fb3</strong>, após ativar o GitHub Pages, vá no console do Firebase em <strong>Authentication &gt; Settings &gt; Authorized domains</strong> e adicione o seu domínio (ex: <code class="bg-white px-1 py-0.5 rounded border border-blue-200">seu-usuario.github.io</code>) para que o login anônimo funcione no site publicado.</p>
+                </div>
+            </div>
+
+            <div class="mt-5 flex justify-end">
+                <button onclick="closeGitHubHelpModal()" class="px-5 py-2 bg-slate-900 text-white text-sm font-semibold rounded-xl hover:bg-slate-800">
+                    Entendi
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notificação Toast Flutuante -->
+    <div id="toast" class="fixed bottom-5 right-5 bg-slate-900 text-white text-sm font-medium px-4 py-3 rounded-xl shadow-lg transform translate-y-20 opacity-0 transition-all duration-300 z-50 flex items-center gap-2.5">
+        <i id="toast-icon" class="fa-solid fa-circle-check text-emerald-400"></i>
+        <span id="toast-msg">Ação realizada!</span>
+    </div>
+
+    <!-- Lógica da Aplicação & Firebase Firestore -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, doc, setDoc, updateDoc, deleteDoc, onSnapshot, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // =========================================================================
+        // 0. CONFIGURAÇÃO DO PROJETO FIREBASE DO USUÁRIO (casa-d8fb3)
+        // =========================================================================
+        const firebaseConfig = {
+            apiKey: "AIzaSyBfEmMnGbjxfGUBWhDZqoGoL1ZSXLvWeJU",
+            authDomain: "casa-d8fb3.firebaseapp.com",
+            projectId: "casa-d8fb3",
+            storageBucket: "casa-d8fb3.firebasestorage.app",
+            messagingSenderId: "44209155404",
+            appId: "1:44209155404:web:c4c3890e82cb781e6ab3e9",
+            measurementId: "G-SPX8MTDS9S"
+        };
+
+        const LOCAL_STORAGE_KEY = 'lista_casa_d8fb3_backup';
+
+        // =========================================================================
+        // 1. LISTA INICIAL DE ITENS (EXATAMENTE CONFORME SOLICITADO)
+        // =========================================================================
+        const INITIAL_DATA = [
+            // Móveis Quarto
+            { id: 'mq-1', category: 'Móveis Quarto', name: 'Box cama', checked: false, link: '', addedBy: '' },
+            { id: 'mq-2', category: 'Móveis Quarto', name: 'Mesa', checked: true, link: '', addedBy: '' },
+
+            // Móveis Banheiro
+            { id: 'mb-1', category: 'Móveis Banheiro', name: 'Gabinete', checked: false, link: '', addedBy: '' },
+
+            // Móveis Cozinha
+            { id: 'mc-1', category: 'Móveis Cozinha', name: 'Armário', checked: true, link: '', addedBy: '' },
+
+            // Móveis Lavanderia
+            { id: 'ml-1', category: 'Móveis Lavanderia', name: 'Maquina de lavar', checked: true, link: '', addedBy: '' },
+            { id: 'ml-2', category: 'Móveis Lavanderia', name: 'Armário', checked: false, link: '', addedBy: '' },
+
+            // Móveis Sala
+            { id: 'ms-1', category: 'Móveis Sala', name: 'Sofá', checked: true, link: '', addedBy: '' },
+            { id: 'ms-2', category: 'Móveis Sala', name: 'Rack', checked: true, link: '', addedBy: '' },
+            { id: 'ms-3', category: 'Móveis Sala', name: 'Mesinha', checked: false, link: '', addedBy: '' },
+            { id: 'ms-4', category: 'Móveis Sala', name: 'Mesa pc', checked: true, link: '', addedBy: '' },
+
+            // Quarto
+            { id: 'q-1', category: 'Quarto', name: 'Manta queen', checked: false, link: '', addedBy: '' },
+            { id: 'q-2', category: 'Quarto', name: 'Kit cama', checked: true, link: '', addedBy: '' },
+            { id: 'q-3', category: 'Quarto', name: 'Cabide', checked: false, link: '', addedBy: '' },
+
+            // Banheiro
+            { id: 'b-1', category: 'Banheiro', name: 'Esfoliante corporal', checked: false, link: '', addedBy: '' },
+            { id: 'b-2', category: 'Banheiro', name: 'Óleo corporal', checked: false, link: '', addedBy: '' },
+            { id: 'b-3', category: 'Banheiro', name: 'Esponja de banho', checked: false, link: '', addedBy: '' },
+            { id: 'b-4', category: 'Banheiro', name: 'Fio dental', checked: false, link: '', addedBy: '' },
+            { id: 'b-5', category: 'Banheiro', name: 'Protetor térmico', checked: false, link: '', addedBy: '' },
+            { id: 'b-6', category: 'Banheiro', name: 'Touca de banho', checked: false, link: '', addedBy: '' },
+            { id: 'b-7', category: 'Banheiro', name: 'Sabonete facial', checked: false, link: '', addedBy: '' },
+            { id: 'b-8', category: 'Banheiro', name: 'Demaquilante', checked: false, link: '', addedBy: '' },
+            { id: 'b-9', category: 'Banheiro', name: 'Fixador de maquiagem', checked: false, link: '', addedBy: '' },
+            { id: 'b-10', category: 'Banheiro', name: 'Tesourinha', checked: false, link: '', addedBy: '' },
+            { id: 'b-11', category: 'Banheiro', name: 'Loção pós-depilação', checked: false, link: '', addedBy: '' },
+            { id: 'b-12', category: 'Banheiro', name: 'Lixa para pés', checked: false, link: '', addedBy: '' },
+            { id: 'b-13', category: 'Banheiro', name: 'Porta-sabonete', checked: false, link: '', addedBy: '' },
+            { id: 'b-14', category: 'Banheiro', name: 'Porta-algodão', checked: false, link: '', addedBy: '' },
+            { id: 'b-15', category: 'Banheiro', name: 'Porta-cotonetes', checked: false, link: '', addedBy: '' },
+            { id: 'b-16', category: 'Banheiro', name: 'Cesto organizador', checked: false, link: '', addedBy: '' },
+            { id: 'b-17', category: 'Banheiro', name: 'Armário de banheiro', checked: false, link: '', addedBy: '' },
+
+            // Primeiros Socorros
+            { id: 'ps-1', category: 'Primeiros Socorros', name: 'Gaze', checked: false, link: '', addedBy: '' },
+            { id: 'ps-2', category: 'Primeiros Socorros', name: 'Curativos adesivos', checked: false, link: '', addedBy: '' },
+            { id: 'ps-3', category: 'Primeiros Socorros', name: 'Antisséptico', checked: false, link: '', addedBy: '' },
+            { id: 'ps-4', category: 'Primeiros Socorros', name: 'Soro fisiológico', checked: false, link: '', addedBy: '' },
+            { id: 'ps-5', category: 'Primeiros Socorros', name: 'Termômetro', checked: false, link: '', addedBy: '' },
+            { id: 'ps-6', category: 'Primeiros Socorros', name: 'Tesoura pequena', checked: false, link: '', addedBy: '' },
+            { id: 'ps-7', category: 'Primeiros Socorros', name: 'Álcool 70%', checked: false, link: '', addedBy: '' },
+            { id: 'ps-8', category: 'Primeiros Socorros', name: 'Pomada para pequenos machucados', checked: false, link: '', addedBy: '' },
+            { id: 'ps-9', category: 'Primeiros Socorros', name: 'Repelente', checked: false, link: '', addedBy: '' }
+        ];
+
+        // Ordem de exibição das categorias e seus ícones
+        const CATEGORY_META = {
+            'Móveis Quarto': { icon: 'fa-bed', color: 'text-indigo-600 bg-indigo-50', order: 1 },
+            'Móveis Banheiro': { icon: 'fa-sink', color: 'text-cyan-600 bg-cyan-50', order: 2 },
+            'Móveis Cozinha': { icon: 'fa-kitchen-set', color: 'text-amber-600 bg-amber-50', order: 3 },
+            'Móveis Lavanderia': { icon: 'fa-jug-detergent', color: 'text-sky-600 bg-sky-50', order: 4 },
+            'Móveis Sala': { icon: 'fa-couch', color: 'text-purple-600 bg-purple-50', order: 5 },
+            'Quarto': { icon: 'fa-blanket', color: 'text-pink-600 bg-pink-50', order: 6 },
+            'Banheiro': { icon: 'fa-pump-soap', color: 'text-teal-600 bg-teal-50', order: 7 },
+            'Primeiros Socorros': { icon: 'fa-kit-medical', color: 'text-rose-600 bg-rose-50', order: 8 },
+            'Cozinha & Outros': { icon: 'fa-box-open', color: 'text-slate-600 bg-slate-100', order: 9 }
+        };
+
+        // Estado Global da Aplicação
+        let items = [];
+        let currentFilter = 'all';
+        let searchQuery = '';
+        let db = null;
+        let itemsCollectionRef = null;
+        let isCloudActive = false;
+
+        // =========================================================================
+        // 2. INICIALIZAÇÃO DO FIREBASE (PROJETO casa-d8fb3 + COLEÇÃO lista_casa)
+        // =========================================================================
+        function saveLocalBackup() {
+            try {
+                localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(items));
+            } catch (e) {
+                console.warn("Não foi possível salvar backup local:", e);
+            }
+        }
+
+        async function initApp() {
+            const statusDot = document.getElementById('connection-status');
+            const statusText = document.getElementById('connection-text');
+
+            try {
+                const app = initializeApp(firebaseConfig);
+                const auth = getAuth(app);
+                db = getFirestore(app);
+
+                // Autenticação anônima obrigatória
+                await signInAnonymously(auth);
+
+                // Coleção 'lista_casa' no Firestore
+                itemsCollectionRef = collection(db, 'lista_casa');
+
+                // Verifica se a coleção está vazia para popular com os itens iniciais (seeding)
+                const snapshot = await getDocs(itemsCollectionRef);
+                if (snapshot.empty) {
+                    for (const item of INITIAL_DATA) {
+                        await setDoc(doc(itemsCollectionRef, item.id), {
+                            ...item,
+                            createdAt: Date.now()
+                        });
+                    }
+                }
+
+                isCloudActive = true;
+
+                // Sincronização em tempo real com onSnapshot
+                onSnapshot(itemsCollectionRef, (querySnapshot) => {
+                    const fetchedItems = [];
+                    querySnapshot.forEach((docSnap) => {
+                        fetchedItems.push({ id: docSnap.id, ...docSnap.data() });
+                    });
+                    items = fetchedItems;
+                    saveLocalBackup();
+                    syncCategoryDropdown();
+                    renderApp();
+
+                    statusDot.className = 'inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse';
+                    statusText.textContent = 'Sincronizado na nuvem';
+                }, (error) => {
+                    console.error("Erro na sincronização Firestore:", error);
+                    activateOfflineFallback("Verifique as regras do Firestore no console");
+                });
+
+            } catch (err) {
+                console.warn("Aviso Firebase:", err);
+                const isAuthDisabled = err?.code === 'auth/configuration-not-found' || err?.code === 'auth/operation-not-allowed' || err?.code === 'auth/unauthorized-domain';
+                const reason = isAuthDisabled 
+                    ? "Ative o login Anônimo / Domínio no Firebase (Modo Local ativo)" 
+                    : "Modo Local ativo (Verifique Firestore/Auth no Firebase)";
+                activateOfflineFallback(reason);
+            }
+        }
+
+        function activateOfflineFallback(customMessage) {
+            isCloudActive = false;
+            try {
+                const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
+                items = saved ? JSON.parse(saved) : [...INITIAL_DATA];
+            } catch (e) {
+                items = [...INITIAL_DATA];
+            }
+            saveLocalBackup();
+            syncCategoryDropdown();
+
+            const statusDot = document.getElementById('connection-status');
+            const statusText = document.getElementById('connection-text');
+            statusDot.className = 'inline-block w-2 h-2 rounded-full bg-amber-500';
+            statusText.textContent = customMessage || 'Modo Local (Salvo neste navegador)';
+            renderApp();
+        }
+
+        function syncCategoryDropdown() {
+            const select = document.getElementById('new-item-category');
+            if (!select) return;
+            const existingValues = Array.from(select.options).map(o => o.value);
+            const newOptionEl = select.querySelector('option[value="__NEW__"]');
+            
+            const allCategories = [...new Set(items.map(i => i.category))];
+            allCategories.forEach(cat => {
+                if (!existingValues.includes(cat)) {
+                    const opt = document.createElement('option');
+                    opt.value = cat;
+                    opt.textContent = cat;
+                    select.insertBefore(opt, newOptionEl);
+                }
+            });
+        }
+
+        // =========================================================================
+        // 3. OPERAÇÕES CRUD (CHECAR, SALVAR LINK, ADICIONAR ITEM)
+        // =========================================================================
+        window.toggleItemCheck = async function(itemId) {
+            const item = items.find(i => i.id === itemId);
+            if (!item) return;
+
+            const newState = !item.checked;
+            
+            // Atualização otimista na interface e backup local
+            item.checked = newState;
+            saveLocalBackup();
+            renderApp();
+
+            if (isCloudActive && itemsCollectionRef) {
+                try {
+                    await updateDoc(doc(itemsCollectionRef, itemId), { checked: newState });
+                } catch (e) {
+                    showToast("Erro ao salvar alteração na nuvem", true);
+                }
+            }
+            showToast(newState ? `Marcado como "Já temos": ${item.name}` : `Desmarcado: ${item.name}`);
+        };
+
+        // Modal de Link de Compra
+        window.openLinkModal = function(itemId) {
+            const item = items.find(i => i.id === itemId);
+            if (!item) return;
+
+            document.getElementById('link-item-id').value = item.id;
+            document.getElementById('link-modal-item-name').textContent = `${item.category} • ${item.name}`;
+            document.getElementById('product-url').value = item.link || '';
+            
+            // Recupera o último nome digitado no localStorage para facilitar
+            const savedName = localStorage.getItem('last_suggester_name') || '';
+            document.getElementById('suggester-name').value = item.addedBy || savedName;
+
+            const removeBtn = document.getElementById('remove-link-btn');
+            if (item.link) {
+                removeBtn.classList.remove('hidden');
+            } else {
+                removeBtn.classList.add('hidden');
+            }
+
+            const modal = document.getElementById('link-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        };
+
+        window.closeLinkModal = function() {
+            const modal = document.getElementById('link-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        };
+
+        document.getElementById('link-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const itemId = document.getElementById('link-item-id').value;
+            const addedBy = document.getElementById('suggester-name').value.trim();
+            let link = document.getElementById('product-url').value.trim();
+
+            if (!addedBy || !link) return;
+
+            // Garante que o link tenha protocolo http/https
+            if (!/^https?:\/\//i.test(link)) {
+                link = 'https://' + link;
+            }
+
+            localStorage.setItem('last_suggester_name', addedBy);
+
+            const item = items.find(i => i.id === itemId);
+            if (item) {
+                item.link = link;
+                item.addedBy = addedBy;
+                saveLocalBackup();
+                renderApp();
+            }
+
+            closeLinkModal();
+
+            if (isCloudActive && itemsCollectionRef) {
+                try {
+                    await updateDoc(doc(itemsCollectionRef, itemId), { link, addedBy });
+                } catch (e) {
+                    showToast("Erro ao salvar link na nuvem", true);
+                }
+            }
+            showToast(`Link salvo por ${addedBy}!`);
+        });
+
+        window.removeLinkFromItem = async function() {
+            const itemId = document.getElementById('link-item-id').value;
+            const item = items.find(i => i.id === itemId);
+            if (item) {
+                item.link = '';
+                item.addedBy = '';
+                saveLocalBackup();
+                renderApp();
+            }
+            closeLinkModal();
+
+            if (isCloudActive && itemsCollectionRef) {
+                try {
+                    await updateDoc(doc(itemsCollectionRef, itemId), { link: '', addedBy: '' });
+                } catch (e) {
+                    showToast("Erro ao remover link", true);
+                }
+            }
+            showToast("Link removido do item.");
+        };
+
+        // Modal de Novo Item
+        window.toggleCustomCategoryInput = function() {
+            const select = document.getElementById('new-item-category');
+            const wrapper = document.getElementById('custom-category-wrapper');
+            const customInput = document.getElementById('custom-category-name');
+            if (select.value === '__NEW__') {
+                wrapper.classList.remove('hidden');
+                customInput.required = true;
+                customInput.focus();
+            } else {
+                wrapper.classList.add('hidden');
+                customInput.required = false;
+            }
+        };
+
+        window.openNewItemModal = function() {
+            document.getElementById('new-item-name').value = '';
+            document.getElementById('new-item-checked').checked = false;
+            document.getElementById('custom-category-name').value = '';
+            toggleCustomCategoryInput();
+            const modal = document.getElementById('new-item-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            setTimeout(() => document.getElementById('new-item-name').focus(), 100);
+        };
+
+        window.closeNewItemModal = function() {
+            const modal = document.getElementById('new-item-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        };
+
+        document.getElementById('new-item-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            let category = document.getElementById('new-item-category').value;
+            if (category === '__NEW__') {
+                category = document.getElementById('custom-category-name').value.trim();
+            }
+            const name = document.getElementById('new-item-name').value.trim();
+            const checked = document.getElementById('new-item-checked').checked;
+
+            if (!name || !category) return;
+
+            const newId = 'item-' + Date.now();
+            const newItem = {
+                id: newId,
+                category,
+                name,
+                checked,
+                link: '',
+                addedBy: '',
+                createdAt: Date.now()
+            };
+
+            items.push(newItem);
+            saveLocalBackup();
+            syncCategoryDropdown();
+            renderApp();
+            closeNewItemModal();
+
+            if (isCloudActive && itemsCollectionRef) {
+                try {
+                    await setDoc(doc(itemsCollectionRef, newId), newItem);
+                } catch (e) {
+                    showToast("Erro ao adicionar na nuvem", true);
+                }
+            }
+            showToast(`"${name}" adicionado em ${category}!`);
+        });
+
+        window.deleteCustomItem = async function(itemId) {
+            const item = items.find(i => i.id === itemId);
+            if (!item) return;
+
+            items = items.filter(i => i.id !== itemId);
+            saveLocalBackup();
+            renderApp();
+
+            if (isCloudActive && itemsCollectionRef) {
+                try {
+                    await deleteDoc(doc(itemsCollectionRef, itemId));
+                } catch (e) {
+                    showToast("Erro ao excluir item", true);
+                }
+            }
+            showToast(`Item "${item.name}" removido.`);
+        };
+
+        // Modal GitHub Help
+        window.openGitHubHelpModal = function() {
+            const modal = document.getElementById('github-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        };
+        window.closeGitHubHelpModal = function() {
+            const modal = document.getElementById('github-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        };
+
+        // =========================================================================
+        // 4. FILTROS, BUSCA E RENDERIZAÇÃO DA INTERFACE
+        // =========================================================================
+        document.getElementById('search-input').addEventListener('input', (e) => {
+            searchQuery = e.target.value.toLowerCase().trim();
+            renderApp();
+        });
+
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.filter-btn').forEach(b => {
+                    b.classList.remove('bg-slate-900', 'text-white');
+                    b.classList.add('bg-slate-100', 'text-slate-600');
+                });
+                btn.classList.remove('bg-slate-100', 'text-slate-600');
+                btn.classList.add('bg-slate-900', 'text-white');
+                
+                currentFilter = btn.dataset.filter;
+                renderApp();
+            });
+        });
+
+        function renderApp() {
+            const container = document.getElementById('categories-container');
+            
+            // Atualiza Progresso Geral (sempre baseado no total real de itens)
+            const totalCount = items.length;
+            const checkedCount = items.filter(i => i.checked).length;
+            const percent = totalCount > 0 ? Math.round((checkedCount / totalCount) * 100) : 0;
+
+            document.getElementById('total-checked').textContent = checkedCount;
+            document.getElementById('total-items').textContent = totalCount;
+            document.getElementById('total-percent').textContent = `${percent}%`;
+            document.getElementById('global-progress-bar').style.width = `${percent}%`;
+
+            // Aplica filtros e busca
+            const filteredItems = items.filter(item => {
+                const matchesSearch = item.name.toLowerCase().includes(searchQuery) || 
+                                      item.category.toLowerCase().includes(searchQuery) ||
+                                      (item.addedBy && item.addedBy.toLowerCase().includes(searchQuery));
+                
+                if (!matchesSearch) return false;
+                if (currentFilter === 'pending') return !item.checked;
+                if (currentFilter === 'checked') return item.checked;
+                if (currentFilter === 'with-link') return Boolean(item.link);
+                return true;
+            });
+
+            if (filteredItems.length === 0) {
+                container.innerHTML = `
+                    <div class="bg-white rounded-2xl border border-slate-200 p-12 text-center">
+                        <div class="w-12 h-12 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-3">
+                            <i class="fa-solid fa-magnifying-glass text-lg"></i>
+                        </div>
+                        <h3 class="text-base font-semibold text-slate-800">Nenhum item encontrado</h3>
+                        <p class="text-sm text-slate-500 mt-1">Tente limpar os filtros ou buscar por outro termo.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            // Agrupa por categoria
+            const grouped = {};
+            filteredItems.forEach(item => {
+                if (!grouped[item.category]) grouped[item.category] = [];
+                grouped[item.category].push(item);
+            });
+
+            // Ordena categorias conforme ordem lógica da casa
+            const sortedCategories = Object.keys(grouped).sort((a, b) => {
+                const orderA = CATEGORY_META[a]?.order || 99;
+                const orderB = CATEGORY_META[b]?.order || 99;
+                return orderA - orderB;
+            });
+
+            let html = '';
+
+            sortedCategories.forEach(category => {
+                const catItems = grouped[category];
+                // Ordena: pendentes primeiro, checados depois (mantendo ordem original dentro de cada grupo)
+                catItems.sort((a, b) => Number(a.checked) - Number(b.checked));
+
+                // Progresso real da categoria (considerando todos os itens da categoria)
+                const allCatItems = items.filter(i => i.category === category);
+                const catChecked = allCatItems.filter(i => i.checked).length;
+                const catTotal = allCatItems.length;
+                const catPercent = Math.round((catChecked / catTotal) * 100);
+
+                const meta = CATEGORY_META[category] || { icon: 'fa-list-check', color: 'text-slate-600 bg-slate-100' };
+
+                html += `
+                <section class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                    <!-- Cabeçalho da Categoria -->
+                    <div class="px-5 py-4 bg-slate-50/70 border-b border-slate-100 flex flex-wrap items-center justify-between gap-3">
+                        <div class="flex items-center gap-3">
+                            <div class="w-9 h-9 rounded-xl ${meta.color} flex items-center justify-center">
+                                <i class="fa-solid ${meta.icon}"></i>
+                            </div>
+                            <div>
+                                <h2 class="text-base font-bold text-slate-800">${escapeHtml(category)}</h2>
+                                <p class="text-xs text-slate-500">${catChecked} de ${catTotal} concluídos</p>
+                            </div>
+                        </div>
+
+                        <!-- Mini barra de progresso da categoria -->
+                        <div class="flex items-center gap-2.5">
+                            <div class="w-24 bg-slate-200 rounded-full h-2 overflow-hidden">
+                                <div class="bg-emerald-500 h-2 rounded-full transition-all duration-300" style="width: ${catPercent}%"></div>
+                            </div>
+                            <span class="text-xs font-bold text-slate-600 w-9 text-right">${catPercent}%</span>
+                        </div>
+                    </div>
+
+                    <!-- Lista de Itens da Categoria -->
+                    <div class="divide-y divide-slate-100">
+                        ${catItems.map(item => renderItemRow(item)).join('')}
+                    </div>
+                </section>
+                `;
+            });
+
+            container.innerHTML = html;
+        }
+
+        function renderItemRow(item) {
+            const isChecked = item.checked;
+            const hasLink = Boolean(item.link);
+            const isCustom = item.id.startsWith('item-');
+
+            return `
+            <div class="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition hover:bg-slate-50/80 ${isChecked ? 'bg-emerald-50/20' : ''}">
+                <!-- Lado Esquerdo: Botão de Checar + Nome do Item -->
+                <div class="flex items-start sm:items-center gap-3.5 flex-1">
+                    <button onclick="toggleItemCheck('${item.id}')" 
+                        aria-label="Alternar status de ${escapeHtml(item.name)}"
+                        class="mt-0.5 sm:mt-0 w-7 h-7 rounded-xl flex items-center justify-center border-2 transition shrink-0 cursor-pointer
+                        ${isChecked 
+                            ? 'bg-emerald-500 border-emerald-500 text-white shadow-sm' 
+                            : 'border-slate-300 bg-white hover:border-emerald-400 text-transparent'}">
+                        <i class="fa-solid fa-check text-xs"></i>
+                    </button>
+
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <span onclick="toggleItemCheck('${item.id}')" class="cursor-pointer font-medium text-sm sm:text-base transition select-none
+                                ${isChecked ? 'line-through text-slate-400' : 'text-slate-800'}">
+                                ${escapeHtml(item.name)}
+                            </span>
+                            
+                            ${isChecked 
+                                ? `<span class="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold bg-emerald-100 text-emerald-700">Já temos</span>` 
+                                : `<span class="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium bg-amber-50 text-amber-700 border border-amber-200/60">Falta</span>`
+                            }
+                        </div>
+
+                        <!-- Informação de Link Sugerido (se existir) -->
+                        ${hasLink ? `
+                            <div class="mt-1.5 flex items-center gap-2 flex-wrap">
+                                <a href="${escapeHtml(item.link)}" target="_blank" rel="noopener noreferrer" 
+                                    class="inline-flex items-center gap-1.5 text-xs font-semibold text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-2.5 py-1 rounded-lg transition">
+                                    <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
+                                    <span>Ver link / Comprar</span>
+                                </a>
+                                <span class="text-xs text-slate-500 flex items-center gap-1">
+                                    <i class="fa-solid fa-user-tag text-slate-400 text-[10px]"></i>
+                                    Sugerido por: <strong class="text-slate-700">${escapeHtml(item.addedBy)}</strong>
+                                </span>
+                            </div>
+                        ` : ''}
+                    </div>
+                </div>
+
+                <!-- Lado Direito: Ações (Adicionar/Editar Link + Excluir se for customizado) -->
+                <div class="flex items-center gap-2 self-end sm:self-center pl-10 sm:pl-0">
+                    <button onclick="openLinkModal('${item.id}')" 
+                        class="text-xs font-medium px-3 py-2 rounded-xl border transition flex items-center gap-1.5
+                        ${hasLink 
+                            ? 'border-slate-200 text-slate-600 hover:bg-slate-100 bg-white' 
+                            : 'border-blue-200 text-blue-600 bg-blue-50/50 hover:bg-blue-100'}">
+                        <i class="fa-solid ${hasLink ? 'fa-pen' : 'fa-link'} text-[11px]"></i>
+                        <span>${hasLink ? 'Editar link' : 'Adicionar link'}</span>
+                    </button>
+
+                    ${isCustom ? `
+                        <button onclick="deleteCustomItem('${item.id}')" title="Excluir item adicionado"
+                            class="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition">
+                            <i class="fa-solid fa-trash-can text-xs"></i>
+                        </button>
+                    ` : ''}
+                </div>
+            </div>
+            `;
+        }
+
+        // Utilitários
+        function escapeHtml(str) {
+            if (!str) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
+        let toastTimeout;
+        function showToast(message, isError = false) {
+            const toast = document.getElementById('toast');
+            const icon = document.getElementById('toast-icon');
+            const msg = document.getElementById('toast-msg');
+
+            msg.textContent = message;
+            icon.className = isError 
+                ? 'fa-solid fa-circle-exclamation text-rose-400' 
+                : 'fa-solid fa-circle-check text-emerald-400';
+
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            clearTimeout(toastTimeout);
+            toastTimeout = setTimeout(() => {
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 3000);
+        }
+
+        // Inicializa o aplicativo ao carregar a página
+        window.addEventListener('DOMContentLoaded', initApp);
+    </script>
+</body>
+</html>
